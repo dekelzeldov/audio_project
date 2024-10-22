@@ -12,7 +12,7 @@ model = AutoModel.from_pretrained("m-a-p/MERT-v1-330M", trust_remote_code=True)
 processor = Wav2Vec2FeatureExtractor.from_pretrained("m-a-p/MERT-v1-330M",trust_remote_code=True)
 
 # load demo audio and set processor
-dataset = load_dataset("Rehead/DEAM_stripped_vocals", split="test")
+dataset = load_dataset("Rehead/DEAM_stripped_vocals", data_files="data/test-*")
 dataset = dataset.sort("id")
 sampling_rate = dataset.features["audio"].sampling_rate
 
