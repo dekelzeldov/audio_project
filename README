@@ -6,3 +6,5 @@ Set virtuall env:
 Install requierments:
  pip install -r /path/to/requirements.txt
 
+for now on mac:
+export PYTORCH_ENABLE_MPS_FALLBACK=1
