@@ -1,0 +1,8 @@
+
+Set virtuall env:
+ python3 -m venv .venv 
+ source .venv/bin/activate
+
+Install requierments:
+ pip install -r /path/to/requirements.txt
+
