@@ -1,6 +1,7 @@
 
 from huggingface_hub import notebook_login
 from datasets import load_dataset, Audio
+import torch
 from transformers import AutoFeatureExtractor, TrainingArguments, AutoModelForAudioClassification, Trainer
 import gradio as gr
 import numpy as np
@@ -104,6 +105,7 @@ batch_size = 8
 gradient_accumulation_steps = 1
 num_train_epochs = 10
 
+
 training_args = TrainingArguments(
     f"{model_name}-finetuned-gtzan",
     evaluation_strategy="epoch",
@@ -117,7 +119,7 @@ training_args = TrainingArguments(
     logging_steps=5,
     load_best_model_at_end=True,
     metric_for_best_model="accuracy",
-    fp16=True,
+    use_mps_device=True,
     push_to_hub=True,
 )
 
