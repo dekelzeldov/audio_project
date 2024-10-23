@@ -12,9 +12,9 @@ model = AutoModel.from_pretrained("m-a-p/MERT-v1-330M", trust_remote_code=True)
 processor = Wav2Vec2FeatureExtractor.from_pretrained("m-a-p/MERT-v1-330M",trust_remote_code=True)
 
 # load demo audio and set processor
-dataset = load_dataset("Rehead/DEAM_stripped_vocals", split="test")
-dataset = dataset.sort("id")
-sampling_rate = dataset.features["audio"].sampling_rate
+dataset = load_dataset("Rehead/DEAM_stripped_vocals")
+#dataset = dataset.sort("id")
+sampling_rate = dataset["train"][0]["audio"]["sampling_rate"]
 
 resample_rate = processor.sampling_rate
 # make sure the sample_rate aligned
@@ -23,12 +23,12 @@ if resample_rate != sampling_rate:
     resampler = T.Resample(sampling_rate, resample_rate)
 else:
     resampler = None
-
+test = dataset["train"][0]["audio"]
 # audio file is decoded on the fly
 if resampler is None:
     input_audio = dataset[0]["audio"]["array"]
 else:
-  input_audio = resampler(torch.from_numpy(dataset[0]["audio"]["array"]))
+  input_audio = resampler(torch.from_numpy(dataset["train"][0]["audio"]["array"].astype(dtype='f4')))
   
 inputs = processor(input_audio, sampling_rate=resample_rate, return_tensors="pt")
 with torch.no_grad():
