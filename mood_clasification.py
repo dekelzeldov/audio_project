@@ -9,7 +9,9 @@ import gradio as gr
 
 # load demo audio and set processor
 dataset_id = "Rehead/DEAM_stripped_vocals"
-dataset = load_dataset(dataset_id)
+# dataset = load_dataset(dataset_id)
+dataset = {"train":  load_dataset(dataset_id, split="train[:100]"),
+           "test":  load_dataset(dataset_id, split="test[:10]")}
 
 
 # def generate_audio():
@@ -31,7 +33,7 @@ dataset = load_dataset(dataset_id)
 
 
 
-model_id = "m-a-p/MERT-v1-330M"
+model_id = "m-a-p/MERT-v1-95M"
 # loading our model weights
 model = AutoModel.from_pretrained(model_id, trust_remote_code=True)
 # loading the corresponding preprocessor config
