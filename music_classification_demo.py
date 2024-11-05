@@ -33,7 +33,7 @@ with gr.Blocks() as demo:
             audio, label = generate_audio()
             output = gr.Audio(audio, label=label)
 
-# demo.launch(debug=True)
+demo.launch(debug=True)
 
 
 model_id = "ntu-spml/distilhubert"
@@ -119,7 +119,7 @@ training_args = TrainingArguments(
     logging_steps=5,
     load_best_model_at_end=True,
     metric_for_best_model="accuracy",
-    use_mps_device=True,
+    use_mps_device=False,
     push_to_hub=True,
 )
 
