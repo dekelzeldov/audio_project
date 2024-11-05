@@ -34,8 +34,7 @@ dataset = dataset.train_test_split(test_size=0.3)
 
 
 model_id = "m-a-p/MERT-v1-95M"
-# loading our model weights
-model = AutoModel.from_pretrained(model_id, trust_remote_code=True)
+
 # loading the corresponding preprocessor config
 processor = Wav2Vec2FeatureExtractor.from_pretrained(model_id,trust_remote_code=True)
 
@@ -45,9 +44,9 @@ resample_rate = processor.sampling_rate
 if resample_rate != sampling_rate:
     dataset = dataset.cast_column("audio", Audio(sampling_rate=resample_rate))
 
-
 max_duration = 45.0
 def preprocess_function(examples):
+    device = "cuda:0"
     audio_arrays = [x["array"] for x in examples["audio"]]
     inputs = processor(
         audio_arrays,
@@ -58,7 +57,7 @@ def preprocess_function(examples):
         return_tensors="pt",
         padding=True
     )
-    return inputs
+    return inputs.to(device)
 
 
 dataset_encoded = dataset.map(
@@ -83,8 +82,11 @@ model = AutoModel.from_pretrained(
     num_labels = 2,
     label2id=label2id,
     id2label=id2label,
+    #device_map="auto",
 )
 
+device = "cuda:0"
+model = model.to(device)
 
 # notebook_login()
 
@@ -108,6 +110,7 @@ training_args = TrainingArguments(
     load_best_model_at_end=True,
     metric_for_best_model="accuracy",
     use_mps_device=False,
+    label_names=list(label2id.keys())
     # push_to_hub=True,
 )
 
@@ -125,7 +128,7 @@ trainer = Trainer(
     training_args,
     train_dataset=dataset_encoded["train"],
     eval_dataset=dataset_encoded["test"],
-    tokenizer=processor,
+    processing_class=processor,
     compute_metrics=compute_metrics,
 )
 
