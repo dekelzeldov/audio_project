@@ -86,7 +86,7 @@ model = AutoModel.from_pretrained(
 )
 
 
-notebook_login()
+# notebook_login()
 
 model_name = model_id.split("/")[-1]
 batch_size = 8
@@ -108,7 +108,7 @@ training_args = TrainingArguments(
     load_best_model_at_end=True,
     metric_for_best_model="accuracy",
     use_mps_device=False,
-    push_to_hub=True,
+    # push_to_hub=True,
 )
 
 
@@ -131,11 +131,11 @@ trainer = Trainer(
 
 trainer.train()
 
-kwargs = {
-    "dataset_tags": dataset_id,
-    "dataset": "DEAM_stripped_vocals",
-    "model_name": f"{model_name}-finetuned-DEAM_stripped_vocals",
-    "finetuned_from": model_id,
-    "tasks": "audio-classification",
-}
-trainer.push_to_hub(**kwargs)
+# kwargs = {
+#     "dataset_tags": dataset_id,
+#     "dataset": "DEAM_stripped_vocals",
+#     "model_name": f"{model_name}-finetuned-DEAM_stripped_vocals",
+#     "finetuned_from": model_id,
+#     "tasks": "audio-classification",
+# }
+# trainer.push_to_hub(**kwargs)
