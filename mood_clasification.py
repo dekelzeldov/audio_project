@@ -4,14 +4,14 @@ from datasets import load_dataset, Audio
 from transformers import AutoModel, Wav2Vec2FeatureExtractor, TrainingArguments, Trainer
 import numpy as np
 import evaluate
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 import gradio as gr
 
 # load demo audio and set processor
 dataset_id = "Rehead/DEAM_stripped_vocals"
 # dataset = load_dataset(dataset_id)
-dataset = {"train":  load_dataset(dataset_id, split="train[:100]"),
-           "test":  load_dataset(dataset_id, split="test[:10]")}
+dataset = load_dataset(dataset_id, split='train[:100]')
+dataset = dataset.train_test_split(test_size=0.3)
 
 
 # def generate_audio():
