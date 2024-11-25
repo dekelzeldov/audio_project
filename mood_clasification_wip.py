@@ -79,8 +79,8 @@ id2label = {
 label2id = {v: k for k, v in id2label.items()}
 
 class CustomModel(nn.Module):
-  def _init_(self,checkpoint,num_labels): 
-    super(CustomModel,self)._init_() 
+  def __init__(self, checkpoint, num_labels): 
+    super(CustomModel,self).__init__() 
     self.num_labels = num_labels 
 
     #Load Model with given checkpoint and extract its body
