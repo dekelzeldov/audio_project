@@ -7,7 +7,7 @@ import numpy as np
 import evaluate
 from datasets import load_dataset, Dataset
 import gradio as gr
-from torch import nn, stack
+import torch
 
 # load demo audio and set processor
 dataset_id = "Rehead/DEAM_stripped_vocals"
@@ -78,7 +78,7 @@ id2label = {
 }
 label2id = {v: k for k, v in id2label.items()}
 
-class CustomModel(nn.Module):
+class CustomModel(torch.nn.Module):
   def __init__(self, checkpoint, num_labels): 
     super(CustomModel,self).__init__() 
     self.num_labels = num_labels 
@@ -89,13 +89,13 @@ class CustomModel(nn.Module):
             trust_remote_code=True,
             problem_type = "regression",
             num_labels = 2,
-            label2id=label2id,
-            id2label=id2label,
+            # label2id=label2id,
+            # id2label=id2label,
             #device_map="auto",
             output_scores = True
         )
-    self.dropout = nn.Dropout(0.1) 
-    self.classifier = nn.Linear(768, num_labels) # load and initialize weights
+    self.dropout = torch.nn.Dropout(0.1) 
+    self.classifier = torch.nn.Linear(768, num_labels) # load and initialize weights
 
   def forward(self, input_values=None, attention_mask=None,labels=None):
     #Extract outputs from the body
@@ -108,7 +108,7 @@ class CustomModel(nn.Module):
     
     loss = None
     if labels is not None:
-      loss_fct = nn.CrossEntropyLoss()
+      loss_fct = torch.nn.CrossEntropyLoss()
       loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
     
     return TokenClassifierOutput(loss=loss, logits=logits, hidden_states=outputs.hidden_states,attentions=outputs.attentions)
@@ -120,8 +120,8 @@ model = model.to(device)
 # notebook_login()
 
 model_name = model_id.split("/")[-1]
-batch_size = 8
-gradient_accumulation_steps = 1
+batch_size = 1
+gradient_accumulation_steps = 8
 num_train_epochs = 2 #10
 
 
@@ -130,8 +130,14 @@ training_args = TrainingArguments(
     evaluation_strategy="epoch",
     save_strategy="epoch",
     learning_rate=5e-5,
+
+    # mem vs. preformance
     per_device_train_batch_size=batch_size,
     gradient_accumulation_steps=gradient_accumulation_steps,
+    # gradient_checkpointing=True,
+    torch_empty_cache_steps=2,
+    # optim="adamw_apex_fused",
+
     per_device_eval_batch_size=batch_size,
     num_train_epochs=num_train_epochs,
     warmup_ratio=0.1,
@@ -141,7 +147,7 @@ training_args = TrainingArguments(
     use_mps_device=False,
     # label_names=list(label2id.keys())
     # push_to_hub=True,
-    remove_unused_columns = False
+    #     remove_unused_columns = False
 )
 
 
@@ -157,12 +163,12 @@ class CustomTrainer(Trainer):
     def compute_loss(self, model, inputs, num_items_in_batch, return_outputs=False):
         valance = inputs.pop("valence_mean")
         arousal = inputs.pop("arousal_mean")
-        labels = stack((valance, arousal),-1)
+        labels = torch.stack((valance, arousal),-1)
 
         outputs = model(**inputs) 
         logits = outputs.logits
 
-        loss_func = nn.MSELoss()
+        loss_func = torch.nn.MSELoss()
         loss = loss_func(logits, labels)
 
         return (loss, outputs) if return_outputs else loss
