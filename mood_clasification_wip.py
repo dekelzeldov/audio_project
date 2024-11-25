@@ -79,7 +79,7 @@ id2label = {
 label2id = {v: k for k, v in id2label.items()}
 
 class CustomModel(nn.Module):
-  def __init__(self,checkpoint,num_labels): 
+  def __init__(self, checkpoint, num_labels): 
     super(CustomModel,self).__init__() 
     self.num_labels = num_labels 
 
