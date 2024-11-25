@@ -79,8 +79,8 @@ id2label = {
 label2id = {v: k for k, v in id2label.items()}
 
 class CustomModel(nn.Module):
-  def _init_(self,checkpoint,num_labels): 
-    super(CustomModel,self)._init_() 
+  def __init__(self,checkpoint,num_labels): 
+    super(CustomModel,self).__init__() 
     self.num_labels = num_labels 
 
     #Load Model with given checkpoint and extract its body
@@ -97,9 +97,9 @@ class CustomModel(nn.Module):
     self.dropout = nn.Dropout(0.1) 
     self.classifier = nn.Linear(768, num_labels) # load and initialize weights
 
-  def forward(self, input_ids=None, attention_mask=None,labels=None):
+  def forward(self, input_values=None, attention_mask=None,labels=None):
     #Extract outputs from the body
-    outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
+    outputs = self.model(input_values=input_values, attention_mask=attention_mask)
 
     #Add custom layers
     sequence_output = self.dropout(outputs[0]) #outputs[0]=last hidden state
@@ -157,7 +157,7 @@ class CustomTrainer(Trainer):
     def compute_loss(self, model, inputs, num_items_in_batch, return_outputs=False):
         valance = inputs.pop("valence_mean")
         arousal = inputs.pop("arousal_mean")
-        outputs = model(**inputs, output_hidden_states=False)
+        outputs = model(**inputs) # Here the exception happens
         labels = valance + arousal
         logits = outputs.logits
         loss_func = nn.MSELoss()
