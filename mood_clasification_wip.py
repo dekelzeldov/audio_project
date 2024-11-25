@@ -7,7 +7,7 @@ import numpy as np
 import evaluate
 from datasets import load_dataset, Dataset
 import gradio as gr
-from torch import nn
+from torch import nn, stack
 
 # load demo audio and set processor
 dataset_id = "Rehead/DEAM_stripped_vocals"
@@ -157,9 +157,11 @@ class CustomTrainer(Trainer):
     def compute_loss(self, model, inputs, num_items_in_batch, return_outputs=False):
         valance = inputs.pop("valence_mean")
         arousal = inputs.pop("arousal_mean")
-        outputs = model(**inputs) # Here the exception happens
-        labels = valance + arousal
+        labels = stack((valance, arousal),-1)
+
+        outputs = model(**inputs) 
         logits = outputs.logits
+
         loss_func = nn.MSELoss()
         loss = loss_func(logits, labels)
 
