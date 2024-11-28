@@ -89,8 +89,8 @@ class CustomModel(torch.nn.Module):
             trust_remote_code=True,
             problem_type = "regression",
             num_labels = 2,
-            # label2id=label2id,
-            # id2label=id2label,
+            label2id=label2id,
+            id2label=id2label,
             #device_map="auto",
             output_scores = True
         )
@@ -145,9 +145,9 @@ training_args = TrainingArguments(
     load_best_model_at_end=True,
     metric_for_best_model="accuracy",
     use_mps_device=False,
-    # label_names=list(label2id.keys())
+    label_names=list(label2id.keys()),
     # push_to_hub=True,
-    #     remove_unused_columns = False
+    remove_unused_columns = False
 )
 
 
@@ -160,7 +160,7 @@ def compute_metrics(eval_pred):
     return metric.compute(predictions=predictions, references=eval_pred.label_ids)
 
 class CustomTrainer(Trainer):
-    def compute_loss(self, model, inputs, num_items_in_batch, return_outputs=False):
+    def compute_loss(self, model, inputs, num_items_in_batch=0, return_outputs=False):
         valance = inputs.pop("valence_mean")
         arousal = inputs.pop("arousal_mean")
         labels = torch.stack((valance, arousal),-1)
