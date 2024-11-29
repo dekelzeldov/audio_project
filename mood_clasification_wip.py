@@ -9,45 +9,29 @@ from datasets import load_dataset, Dataset
 import gradio as gr
 import torch
 
-# load demo audio and set processor
+# load dataset
 dataset_id = "Rehead/DEAM_stripped_vocals"
-# dataset = load_dataset(dataset_id)
-dataset = load_dataset(dataset_id, split='train[:20]')
-dataset = dataset.train_test_split(test_size=0.2)
+dataset = load_dataset(dataset_id, split='train[:1000]') # Loads 20 examples
+dataset = dataset.train_test_split(test_size=0.1)  # Splits loaded examples into two splits: if test_size=0.2 and 20 examples: train = 16 examples, test = 4 examples
+# ok so the predictions depends on the size of the test set
+# currently set so test receives the exact amount or expected predictions.
 
-
-# def generate_audio():
-#     example = dataset["train"].shuffle()[0]
-#     audio = example["audio"]
-#     return (
-#         audio["sampling_rate"],
-#         audio["array"],
-#     ), (example["valence_mean"], example["arousal_mean"])
-
-
-# with gr.Blocks() as demo:
-#     with gr.Column():
-#         for _ in range(4):
-#             audio, label = generate_audio()
-#             output = gr.Audio(audio, label=label)
-
-# demo.launch(debug=True)
-
-
+##########################################################################################################################
+# Encode dataset and extract features                                                                                    #
+##########################################################################################################################
 
 model_id = "m-a-p/MERT-v1-95M"
-# loading our model weights
-#model = AutoModel.from_pretrained(model_id, trust_remote_code=True)
-# loading the corresponding preprocessor config
+# Loading the corresponding preprocessor config
 processor = Wav2Vec2FeatureExtractor.from_pretrained(model_id,trust_remote_code=True)
 
-# make sure the sample_rate aligned
+# Make sure the sample_rate aligned
 sampling_rate = dataset["train"][0]["audio"]["sampling_rate"]
 resample_rate = processor.sampling_rate
 if resample_rate != sampling_rate:
     dataset = dataset.cast_column("audio", Audio(sampling_rate=resample_rate))
 
-max_duration = 45.0
+# Extract features
+max_duration = 10.0
 def preprocess_function(examples):
     device = "cuda:0"
     audio_arrays = [x["array"] for x in examples["audio"]]
@@ -62,15 +46,18 @@ def preprocess_function(examples):
     )
     return inputs.to(device)
 
-
 dataset_encoded = dataset.map(
     preprocess_function,
-    remove_columns=['audio', 'valence_std', 'valence_max_mean', 'valence_max_std', 'valence_min_mean', 'valence_min_std',
-                             'arousal_std', 'arousal_max_mean', 'arousal_max_std', 'arousal_min_mean', 'arousal_min_std'],
+#    remove_columns=['audio', 'valence_std', 'valence_max_mean', 'valence_max_std', 'valence_min_mean', 'valence_min_std',   # These can be commented out since unused columns are removed
+#                             'arousal_std', 'arousal_max_mean', 'arousal_max_std', 'arousal_min_mean', 'arousal_min_std'],
     batched=True,
     batch_size=100,
     num_proc=1
 )
+
+##########################################################################################################################
+# 
+##########################################################################################################################
 
 id2label = {
     "0": "valence_mean", 
@@ -107,7 +94,7 @@ class CustomModel(torch.nn.Module):
     logits = self.classifier(sequence_output[:,0,:].view(-1,768)) # calculate losses
     
     loss = None
-    if labels is not None:
+    if labels is not None: # labels is none so this is never hit
       loss_fct = torch.nn.CrossEntropyLoss()
       loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
     
@@ -117,17 +104,14 @@ model = CustomModel(model_id, 2)
 device = "cuda:0"
 model = model.to(device)
 
-# notebook_login()
-
 model_name = model_id.split("/")[-1]
 batch_size = 1
 gradient_accumulation_steps = 8
-num_train_epochs = 2 #10
-
+num_train_epochs = 1
 
 training_args = TrainingArguments(
     f"{model_name}-finetuned-gtzan",
-    evaluation_strategy="epoch",
+    eval_strategy="epoch",
     save_strategy="epoch",
     learning_rate=5e-5,
 
@@ -144,16 +128,19 @@ training_args = TrainingArguments(
     logging_steps=5,
     load_best_model_at_end=True,
     metric_for_best_model="accuracy",
-    use_mps_device=False,
+    #use_mps_device=False,
     label_names=list(label2id.keys()),
     # push_to_hub=True,
-    remove_unused_columns = False
+    remove_unused_columns = True # with label2id working, valence_mean and arousal_mean are no longer seen as unused, so remove_unused_columns can be True or False.
 )
-
 
 metric = evaluate.load("accuracy")
 
-
+# one of the errors occurs in this function:
+# ValueError: Predictions and/or references don't match the expected format.
+# Expected format: {'predictions': Value(dtype='int32', id=None), 'references': Value(dtype='int32', id=None)},
+# Input predictions: [1 0],
+# Input references: (array([6.4, 4.4], dtype=float32), array([6.3, 5.3], dtype=float32))
 def compute_metrics(eval_pred):
     """Computes accuracy on a batch of predictions"""
     predictions = np.argmax(eval_pred.predictions, axis=1)
@@ -173,7 +160,6 @@ class CustomTrainer(Trainer):
 
         return (loss, outputs) if return_outputs else loss
 
-
 trainer = CustomTrainer(
     model,
     training_args,
@@ -184,12 +170,3 @@ trainer = CustomTrainer(
 )
 
 trainer.train()
-
-# kwargs = {
-#     "dataset_tags": dataset_id,
-#     "dataset": "DEAM_stripped_vocals",
-#     "model_name": f"{model_name}-finetuned-DEAM_stripped_vocals",
-#     "finetuned_from": model_id,
-#     "tasks": "audio-classification",
-# }
-# trainer.push_to_hub(**kwargs)
