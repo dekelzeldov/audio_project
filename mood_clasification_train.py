@@ -1,19 +1,17 @@
 
-from huggingface_hub import login
+
 from datasets import load_dataset, Audio
 from transformers import AutoModel, Wav2Vec2FeatureExtractor, TrainingArguments, Trainer
 from transformers.modeling_outputs import TokenClassifierOutput
 import numpy as np
 import evaluate
-from datasets import load_dataset, Dataset
-import gradio as gr
+from datasets import load_dataset
 import torch
-import utils
 
 # load dataset
 dataset_id = "Rehead/DEAM_stripped_vocals"
 dataset = load_dataset(dataset_id, split='train[:20]') # add [:20] to loads 20 examples
-dataset = dataset.train_test_split(test_size=0.1)  # Splits loaded examples into two splits: if test_size=0.2 and 20 examples: train = 16 examples, test = 4 examples
+dataset = dataset.train_test_split(test_size=0.1, seed=24)  # Splits loaded examples into two splits: if test_size=0.2 and 20 examples: train = 16 examples, test = 4 examples
 # ok so the predictions depends on the size of the test set
 # currently set so test receives the exact amount or expected predictions.
 
@@ -60,12 +58,50 @@ dataset_encoded = dataset.map(
 # 
 ##########################################################################################################################
 
+id2label = {
+    "0": "valence_mean", 
+    "1": "arousal_mean"
+}
+label2id = {v: k for k, v in id2label.items()}
 
-model = utils.CustomModel(model_id)
+class CustomModel(torch.nn.Module):
+  def __init__(self, checkpoint): 
+    super(CustomModel,self).__init__() 
+
+    #Load Model with given checkpoint and extract its body
+    self.model = AutoModel.from_pretrained(
+            checkpoint,
+            trust_remote_code=True,
+            problem_type = "regression",
+            num_labels = len(label2id),
+            label2id=label2id,
+            id2label=id2label,
+            #device_map="auto",
+            output_scores = True
+        )
+    self.dropout = torch.nn.Dropout(0.1) 
+    self.classifier = torch.nn.Linear(768, len(label2id)) # load and initialize weights
+
+  def forward(self, input_values=None, attention_mask=None,labels=None):
+    #Extract outputs from the body
+    outputs = self.model(input_values=input_values, attention_mask=attention_mask)
+
+    #Add custom layers
+    sequence_output = self.dropout(outputs[0]) #outputs[0]=last hidden state
+
+    logits = self.classifier(sequence_output[:,0,:].view(-1,768)) # calculate losses
+    
+    loss = None
+    if labels is not None: # labels is none so this is never hit
+      loss_fct = torch.nn.CrossEntropyLoss()
+      loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+    
+    return TokenClassifierOutput(loss=loss, logits=logits, hidden_states=outputs.hidden_states,attentions=outputs.attentions)
+
+
+model = CustomModel(model_id)
 device = "cuda:0"
 model = model.to(device)
-
-login()
 
 model_name = model_id.split("/")[-1]
 dataset_name = dataset_id.split("/")[-1]
@@ -77,7 +113,7 @@ num_train_epochs = 1
 training_args = TrainingArguments(
     path,
     eval_strategy="epoch",
-    save_strategy="epoch",
+    save_strategy="no",
     learning_rate=5e-5,
 
     # mem vs. preformance
@@ -93,8 +129,8 @@ training_args = TrainingArguments(
     logging_steps=5,
     metric_for_best_model="r_squared",
     #use_mps_device=False,
-    label_names=list(utils.label2id.keys()),
-    push_to_hub=True,
+    label_names=list(label2id.keys()),
+    # push_to_hub=True,
     remove_unused_columns = True # with label2id working, valence_mean and arousal_mean are no longer seen as unused, so remove_unused_columns can be True or False.
 )
 
@@ -134,19 +170,40 @@ trainer = CustomTrainer(
     compute_metrics=compute_metrics,
 )
 
-trainer.train()
-# trainer.save_model(path)
+LOAD = True
+TRAIN = True
+SAVE = True
 
 
-kwargs = {
-    "dataset_tags": dataset_id,
-    "dataset": dataset_id,
-    "model_name": f"{model_name}-finetuned-{dataset_name}",
-    "finetuned_from": model_id,
-    "tasks": "audio-classification",
-}
-trainer.push_to_hub(**kwargs)
+file_name = f'model_weights_latest.pth'
 
-# model = AutoModel.from_pretrained(path)
+if(LOAD):
+    
+    print()
+    print("Pre-loading evaluation:")
+    model.eval()
+    print(trainer.evaluate())
+
+    print()
+    print(f"loading from {file_name}")
+    model.load_state_dict(torch.load(file_name, weights_only=True))
+
+if(TRAIN):
+    
+    print()
+    print("Pre-training evaluation:")
+    model.eval()
+    print(trainer.evaluate())
+
+    print()
+    model.train()
+    print("training")
+    trainer.train()
+
+if(SAVE):
+    print()
+    print(f"saving to {file_name}")
+    torch.save(model.state_dict(), file_name)
+  
 
 
