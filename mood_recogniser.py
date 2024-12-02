@@ -19,6 +19,9 @@ dataset = {"train":  load_dataset(dataset_id, split="train[:100]"),
 
 #dataset = dataset.sort("id")
 sampling_rate = dataset["train"][0]["audio"]["sampling_rate"]
+print(dataset["train"][0]["audio"]["array"])
+
+exit()
 
 resample_rate = processor.sampling_rate
 # make sure the sample_rate aligned
@@ -30,9 +33,9 @@ else:
 test = dataset["train"][0]["audio"]
 # audio file is decoded on the fly
 if resampler is None:
-    input_audio = dataset[0]["audio"]["array"]
+    input_audio = dataset["train"][0]["audio"]["array"]
 else:
-  input_audio = resampler(torch.from_numpy(dataset["train"][0]["audio"]["array"].astype(dtype='f4')))
+    input_audio = resampler(torch.from_numpy(dataset["train"][0]["audio"]["array"].astype(dtype='f4')))
   
 inputs = processor(input_audio, sampling_rate=resample_rate, return_tensors="pt")
 with torch.no_grad():
