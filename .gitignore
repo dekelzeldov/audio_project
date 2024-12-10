@@ -1,2 +1,5 @@
 .venv/
 distilhubert-finetuned-gtzan/
+AudioDataset.zip
+AudioDataset/AudioDataset/
+model_weights_*.pth
