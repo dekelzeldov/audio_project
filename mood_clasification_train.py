@@ -27,7 +27,7 @@ from sklearn.model_selection import KFold
 #   Train: index=[0 1]
 #   Test:  index=[2 3]
 
-DATA = True
+DATA = False
 
 if DATA:
     # load dataset
@@ -208,9 +208,9 @@ if DATA:
     )
 
 
-LOAD = False
-TRAIN = True
-SAVE = True
+LOAD = True
+TRAIN = False
+SAVE = False
 
 
 file_name = f'model_weights_norm_2.pth'
