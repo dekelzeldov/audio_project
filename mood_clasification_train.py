@@ -27,7 +27,7 @@ from sklearn.model_selection import KFold
 #   Train: index=[0 1]
 #   Test:  index=[2 3]
 
-DATA = False
+DATA = True
 
 if DATA:
     # load dataset
@@ -178,7 +178,9 @@ metric = evaluate.load("r_squared")
 def compute_metrics(eval_pred):
     """Computes accuracy on a batch of predictions"""
     predictions = eval_pred.predictions
-    references = np.array(eval_pred.label_ids)
+    references = np.array(eval_pred.label_ids)/5-1
+    references = np.transpose(references)
+    print(f"references: {references} \t predictions: {predictions}")
     return {"r_squared": metric.compute(predictions=predictions.flatten(), references=references.flatten())}
 
 class CustomTrainer(Trainer):
@@ -186,13 +188,13 @@ class CustomTrainer(Trainer):
         valance = inputs.pop("valence_mean")
         arousal = inputs.pop("arousal_mean")
         labels = torch.stack((valance, arousal),-1)
+        labels = labels/5-1
 
         outputs = model(**inputs) 
         logits = outputs.logits
 
         loss_func = torch.nn.MSELoss()
         loss = loss_func(logits, labels)
-
         return (loss, outputs) if return_outputs else loss
 
 if DATA:
@@ -206,12 +208,12 @@ if DATA:
     )
 
 
-LOAD = True
-TRAIN = False
-SAVE = False
+LOAD = False
+TRAIN = True
+SAVE = True
 
 
-file_name = f'model_weights_test.pth'
+file_name = f'model_weights_norm_2.pth'
 
 if(LOAD):
     print()
@@ -267,7 +269,7 @@ for filename in os.listdir(directory):
     if os.path.isfile(f):
         print(f)
 
-        input_sr, input_array = wavfile.read('acoustic-guitar-loop-f-91bpm-132687.wav')
+        input_sr, input_array = wavfile.read(f)
 
         resample_rate = processor.sampling_rate
         # make sure the sample_rate aligned
