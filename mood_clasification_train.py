@@ -213,7 +213,7 @@ TRAIN = False
 SAVE = False
 
 
-file_name = f'model_weights_norm_2.pth'
+file_name = f'model_weights_norm.pth'
 
 if(LOAD):
     print()
@@ -258,8 +258,10 @@ from scipy.io import wavfile
 import torchaudio.transforms as T
 import os
 
+model.eval()
+
 # assign directory
-directory = '.\AudioDataset\AudioDataset'
+directory = '.\presentation_songs'
 
 # iterate over files in
 # that directory
