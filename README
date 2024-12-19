@@ -1,13 +1,23 @@
+Requierments:
+  * pytorch
+  * cuda
+  * rust
+  * Python3 (tested on 3.8.10)
 
 Set virtuall env:
  python3 -m venv .venv 
- source .venv/bin/activate
+
+Activate virtuall env (on windows):
+ .\.venv\Scripts\activate
+
+Install turch according to your cuda - for example:
+  pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124  
 
 Install requierments:
- pip install -r /path/to/requirements.txt
+ pip install -r requirements.txt
 
 Run the model (will load the data and the trained model, test it, and run on the songs in the folder 'songs'):
-  python3 mood_clasification_train.py
+  python mood_clasification_train.py
 
 The variables in the file mood_clasification_train.py can be modified to change behavior of the script:
   - 'LOAD' : if true the trained model will be loaded (before training)

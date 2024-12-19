@@ -194,7 +194,7 @@ if DATA:
     )
 
 
-file_name = f'model_weights_norm.pth'
+file_name = f'model_weights.pth'
 
 if(LOAD):
     print()
