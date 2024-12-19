@@ -9,25 +9,11 @@ from datasets import load_dataset, DatasetDict
 import torch
 from sklearn.model_selection import KFold
 
-# >>> X = np.array([[1, 2], [3, 4], [1, 2], [3, 4]])
-# >>> y = np.array([1, 2, 3, 4])
-# >>> kf = KFold(n_splits=2)
-# >>> kf.get_n_splits(X)
-# 2
-# >>> print(kf)
-# KFold(n_splits=2, random_state=None, shuffle=False)
-# >>> for i, (train_index, test_index) in enumerate(kf.split(X)):
-# ...     print(f"Fold {i}:")
-# ...     print(f"  Train: index={train_index}")
-# ...     print(f"  Test:  index={test_index}")
-# Fold 0:
-#   Train: index=[2 3]
-#   Test:  index=[0 1]
-# Fold 1:
-#   Train: index=[0 1]
-#   Test:  index=[2 3]
-
+LOAD = True
 DATA = False
+TRAIN = False
+SAVE = False
+
 
 if DATA:
     # load dataset
@@ -206,11 +192,6 @@ if DATA:
         processing_class=processor,
         compute_metrics=compute_metrics,
     )
-
-
-LOAD = True
-TRAIN = False
-SAVE = False
 
 
 file_name = f'model_weights_norm.pth'
