@@ -10,7 +10,7 @@ import torch
 from sklearn.model_selection import KFold
 
 LOAD = True
-DATA = False
+DATA = True
 TRAIN = False
 SAVE = False
 
@@ -242,7 +242,7 @@ import os
 model.eval()
 
 # assign directory
-directory = '.\presentation_songs'
+directory = '.\songs'
 
 # iterate over files in
 # that directory
